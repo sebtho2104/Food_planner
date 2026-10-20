@@ -107,6 +107,8 @@ document.querySelectorAll(".tab").forEach(tab => {
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     tab.classList.add("active");
     document.getElementById(tab.dataset.tab).classList.add("active");
+    // The "Add meal" button only belongs on the Meals tab
+    document.getElementById("add-meal").classList.toggle("hidden", tab.dataset.tab !== "library");
   });
 });
 
@@ -116,9 +118,10 @@ let openMealId = null; // the meal that is expanded in the Meals list
 
 function renderMeals() {
   const list = document.getElementById("meal-list");
+  document.getElementById("meal-total").textContent = meals.length;
 
   if (meals.length === 0) {
-    list.innerHTML = '<p class="empty">No meals yet. Add your first one!</p>';
+    list.innerHTML = '<p class="empty">No meals yet. Press <b>+ Add meal</b> to add your first one!</p>';
     return;
   }
 
@@ -489,7 +492,7 @@ function renderSuggestion(message) {
 
   box.innerHTML = `
     <div class="card pick">
-      <div>How about…</div>
+      <div class="pick-label">How about…</div>
       ${photoHtml(meal.photo)}
       <div class="meal-title">${escapeHtml(meal.name)}</div>
       <ul class="ingredients" style="text-align:left; display:inline-block;">
@@ -567,7 +570,7 @@ function renderWeek(message) {
     const meal = findMeal(week[i]);
     return `
       <div class="card day-row">
-        <span class="day-name">${day}</span>
+        <span class="day-name"><span class="day-long">${day}</span><span class="day-short">${day.slice(0, 3)}</span></span>
         ${meal ? photoHtml(meal.photo, "thumb") : ""}
         <span class="day-meal">${meal ? escapeHtml(meal.name) : "<em>—</em>"}</span>
         <button class="small secondary" onclick="rerollDay(${i})" title="Pick another">🔄</button>

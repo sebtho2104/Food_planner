@@ -4,43 +4,60 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Middagsmaskinen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>🍽️ Middagsmaskinen</h1>
-    <p class="tagline">Stop arguing about dinner.</p>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">🍽️ Middagsmaskinen</div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="library">Meals</button>
+        <button class="tab" data-tab="week">Week</button>
+        <button class="tab" data-tab="shopping">Shopping</button>
+      </nav>
+    </div>
   </header>
-
-  <nav class="tabs">
-    <button class="tab active" data-tab="library">Meals</button>
-    <button class="tab" data-tab="week">Week</button>
-    <button class="tab" data-tab="shopping">Shopping</button>
-  </nav>
 
   <main>
     <!-- Week -->
     <section id="week" class="panel">
-      <div class="row">
-        <button id="pick-week" class="big-btn">📅 Randomize the week</button>
+      <div class="section-head">
+        <h2>This week</h2>
+        <button id="pick-week" class="small">🎲 Randomize week</button>
       </div>
       <div id="week-list"></div>
-      <button id="week-to-shopping" class="secondary hidden">🛒 Add whole week to shopping list</button>
+      <button id="week-to-shopping" class="wide secondary hidden">🛒 Add whole week to shopping list</button>
     </section>
 
     <!-- Meal library -->
     <section id="library" class="panel active">
-      <div class="top-buttons">
-        <button id="add-meal" class="big-btn">➕ Add meal</button>
-        <button id="pick-tonight" class="big-btn secondary">🎲 Pick one for me</button>
+      <div class="hero">
+        <div class="hero-top">
+          <div>
+            <h2>What's for dinner?</h2>
+            <p>Can't decide? Let the machine pick.</p>
+          </div>
+          <button id="pick-tonight" class="hero-btn">🎲 Surprise me</button>
+        </div>
+        <div id="tonight-result"></div>
       </div>
-      <div id="tonight-result"></div>
+
+      <div class="section-head">
+        <h2>Your meals <span id="meal-total" class="count-badge">0</span></h2>
+      </div>
       <input id="meal-search" class="search" type="search" placeholder="🔍 Search meals or ingredients…">
       <div id="meal-list"></div>
     </section>
 
     <!-- Shopping list -->
     <section id="shopping" class="panel">
+      <div class="section-head">
+        <h2>Shopping list</h2>
+        <button id="clear-shopping" class="small secondary">Clear list</button>
+      </div>
       <form id="shop-form" class="shop-form">
         <input id="shop-name" type="text" placeholder="Add item, e.g. Banana" maxlength="40">
         <input id="shop-amount" class="ing-amount" type="number" placeholder="Qty" min="0" step="any">
@@ -48,9 +65,10 @@
         <button type="submit">Add</button>
       </form>
       <div id="shopping-list"></div>
-      <button id="clear-shopping" class="secondary">Clear list</button>
     </section>
   </main>
+
+  <button id="add-meal" class="fab">+ Add meal</button>
 
   <!-- Add / edit meal popup -->
   <dialog id="meal-dialog">
