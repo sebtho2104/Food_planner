@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Middagsmaskinen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🍽️ Middagsmaskinen</h1>
+    <p class="tagline">Stop arguing about dinner.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="tonight">Tonight</button>
+    <button class="tab" data-tab="week">Week</button>
+    <button class="tab" data-tab="library">Meals</button>
+    <button class="tab" data-tab="shopping">Shopping</button>
+  </nav>
+
+  <main>
+    <!-- Tonight -->
+    <section id="tonight" class="panel active">
+      <button id="pick-tonight" class="big-btn">🎲 Decide for me</button>
+      <div id="tonight-result"></div>
+    </section>
+
+    <!-- Week -->
+    <section id="week" class="panel">
+      <div class="row">
+        <button id="pick-week" class="big-btn">📅 Randomize the week</button>
+      </div>
+      <div id="week-list"></div>
+      <button id="week-to-shopping" class="secondary hidden">🛒 Add whole week to shopping list</button>
+    </section>
+
+    <!-- Meal library -->
+    <section id="library" class="panel">
+      <button id="add-meal" class="big-btn">➕ Add meal</button>
+      <div id="meal-list"></div>
+    </section>
+
+    <!-- Shopping list -->
+    <section id="shopping" class="panel">
+      <div id="shopping-list"></div>
+      <button id="clear-shopping" class="secondary">Clear list</button>
+    </section>
+  </main>
+
+  <!-- Add / edit meal popup -->
+  <dialog id="meal-dialog">
+    <form id="meal-form" method="dialog">
+      <h2 id="dialog-title">Add meal</h2>
+
+      <label for="meal-name">Meal name</label>
+      <input id="meal-name" type="text" placeholder="e.g. Taco" maxlength="60">
+
+      <h3>Ingredients</h3>
+      <div id="ingredient-rows"></div>
+      <button type="button" id="add-ingredient" class="secondary">+ Add ingredient</button>
+
+      <p id="form-error" class="error"></p>
+
+      <div class="dialog-buttons">
+        <button type="button" id="cancel-meal" class="secondary">Cancel</button>
+        <button type="submit" id="save-meal">Save meal</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

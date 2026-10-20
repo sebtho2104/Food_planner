@@ -1,0 +1,234 @@
+:root {
+  --bg: #fdf8f3;
+  --card: #ffffff;
+  --text: #2b2b2b;
+  --muted: #777;
+  --accent: #e8643c;
+  --accent-dark: #c94f2a;
+  --border: #e6ddd4;
+  --ok: #3a9d5d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  text-align: center;
+  padding: 24px 16px 8px;
+}
+
+header h1 { margin: 0; font-size: 1.8rem; }
+.tagline { margin: 4px 0 0; color: var(--muted); }
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+
+.tab {
+  flex: 1;
+  max-width: 140px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 16px 40px;
+}
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: white;
+}
+
+button:hover { background: var(--accent-dark); }
+
+button.secondary {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.secondary:hover { background: #f3ece5; }
+
+button.small {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.big-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.card h3 { margin: 0 0 6px; }
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-actions { display: flex; gap: 6px; }
+
+.ingredients {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pick {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.pick .meal-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 8px 0 12px;
+}
+
+.pick .buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-name {
+  font-weight: bold;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.day-meal { flex: 1; }
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 24px 0;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.shop-item input { width: 20px; height: 20px; }
+.shop-item.done span { text-decoration: line-through; color: var(--muted); }
+
+.hidden { display: none; }
+
+.notice { color: var(--ok); text-align: center; margin: 8px 0; }
+
+/* Dialog */
+dialog {
+  border: none;
+  border-radius: 14px;
+  padding: 20px;
+  width: min(520px, calc(100% - 32px));
+  max-height: 90vh;
+}
+
+dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+
+dialog h2 { margin-top: 0; }
+
+label { display: block; font-weight: bold; margin-bottom: 4px; }
+
+input, select {
+  font: inherit;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.ingredient-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 80px 36px;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+/* Hide the number spinner arrows so the amount field has room */
+.ing-amount { -moz-appearance: textfield; appearance: textfield; }
+.ing-amount::-webkit-outer-spin-button,
+.ing-amount::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.ingredient-row button {
+  padding: 0;
+  background: var(--card);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.error { color: #c0392b; min-height: 1.2em; }
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 420px) {
+  .ingredient-row { grid-template-columns: 1fr 80px 70px 32px; }
+  .day-name { width: 70px; }
+}
