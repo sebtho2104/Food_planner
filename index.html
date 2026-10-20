@@ -13,7 +13,7 @@
   </header>
 
   <nav class="tabs">
-    <button class="tab active" data-tab="tonight">Tonight</button>
+    <button class="tab active" data-tab="tonight">What to eat?</button>
     <button class="tab" data-tab="week">Week</button>
     <button class="tab" data-tab="library">Meals</button>
     <button class="tab" data-tab="shopping">Shopping</button>
@@ -22,8 +22,13 @@
   <main>
     <!-- Tonight -->
     <section id="tonight" class="panel active">
-      <button id="pick-tonight" class="big-btn">🎲 Decide for me</button>
+      <button id="pick-tonight" class="big-btn">🎲 Suggest a meal</button>
       <div id="tonight-result"></div>
+      <select id="choose-meal" class="chooser"></select>
+
+      <h3 class="section-title">Your picks</h3>
+      <div id="picked-list"></div>
+      <button id="picks-to-shopping" class="big-btn hidden">🛒 Add ingredients to shopping list</button>
     </section>
 
     <!-- Week -->
@@ -38,11 +43,18 @@
     <!-- Meal library -->
     <section id="library" class="panel">
       <button id="add-meal" class="big-btn">➕ Add meal</button>
+      <input id="meal-search" class="search" type="search" placeholder="🔍 Search meals or ingredients…">
       <div id="meal-list"></div>
     </section>
 
     <!-- Shopping list -->
     <section id="shopping" class="panel">
+      <form id="shop-form" class="shop-form">
+        <input id="shop-name" type="text" placeholder="Add item, e.g. Banana" maxlength="40">
+        <input id="shop-amount" class="ing-amount" type="number" placeholder="Qty" min="0" step="any">
+        <select id="shop-unit"></select>
+        <button type="submit">Add</button>
+      </form>
       <div id="shopping-list"></div>
       <button id="clear-shopping" class="secondary">Clear list</button>
     </section>

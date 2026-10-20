@@ -278,3 +278,61 @@ input, select {
   font-size: 1.4rem;
   aspect-ratio: auto;
 }
+
+/* Meals list: compact rows that expand on click */
+.search { margin-bottom: 12px; }
+
+.meal-item { padding: 0; overflow: hidden; }
+
+.meal-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.meal-summary:hover { background: #fbf6f1; }
+.meal-summary .thumb { width: 56px; height: 56px; }
+.meal-info { flex: 1; min-width: 0; }
+.meal-name { font-weight: bold; font-size: 1.05rem; }
+.meal-count { color: var(--muted); font-size: 0.85rem; }
+
+.chevron { color: var(--muted); transition: transform 0.25s; }
+.meal-item.open .chevron { transform: rotate(180deg); }
+
+/* Smooth open/close */
+.meal-details-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.meal-item.open .meal-details-wrap { grid-template-rows: 1fr; }
+.meal-details { overflow: hidden; padding: 0 12px; }
+.meal-item.open .meal-details { padding-bottom: 12px; }
+
+.photo-box.large { max-height: 240px; margin-bottom: 8px; }
+.meal-details .card-actions { justify-content: flex-end; margin-top: 10px; }
+
+/* What to eat */
+.chooser { margin-bottom: 8px; }
+.section-title { margin: 20px 0 8px; }
+
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+/* Shopping: add your own item */
+.shop-form {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px auto;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 420px) {
+  .shop-form { grid-template-columns: 1fr 64px 70px auto; }
+}
