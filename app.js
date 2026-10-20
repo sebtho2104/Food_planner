@@ -177,8 +177,6 @@ function deleteMeal(id) {
 
   meals = meals.filter(m => m.id !== id);
   week = week.map(w => (w === id ? null : w));
-  picks = picks.filter(p => p !== id);
-  save("picks", picks);
   if (tonightPick === id) tonightPick = null;
 
   save("meals", meals);
@@ -428,75 +426,56 @@ document.getElementById("meal-form").addEventListener("submit", async event => {
   renderAll();
 });
 
-// ---------- What to eat ----------
-
-let picks = load("picks", []); // ids of the meals you have chosen to cook
+// ---------- Pick one for me ----------
 
 function recentlyEaten() {
   const cutoff = Date.now() - SKIP_DAYS * 24 * 60 * 60 * 1000;
   return history.filter(h => new Date(h.date).getTime() >= cutoff).map(h => h.mealId);
 }
 
+// Remember when a meal was added to the shopping list, so it isn't suggested again right away
+function rememberEaten(meal) {
+  history.push({ mealId: meal.id, date: new Date().toISOString() });
+  save("history", history);
+}
+
 function suggestMeal() {
   if (meals.length === 0) {
     tonightPick = null;
-    renderSuggestion("Add some meals first in the Meals tab.");
+    renderSuggestion("Add some meals first.");
     return;
   }
 
-  // Don't suggest meals that are already picked
-  const options = meals.filter(m => !picks.includes(m.id));
-  if (options.length === 0) {
-    tonightPick = null;
-    renderSuggestion("All your meals are already picked!");
-    return;
-  }
-
-  // Prefer meals you haven't eaten in the last few days
+  // Prefer meals you haven't had in the last few days
   const recent = recentlyEaten();
-  let fresh = options.filter(m => !recent.includes(m.id));
+  let options = meals.filter(m => !recent.includes(m.id));
   let note = "";
-  if (fresh.length === 0) {
-    fresh = options;
-    note = "You've had these recently, but here's one anyway!";
+  if (options.length === 0) {
+    options = meals;
+    note = "You've had everything recently, so anything goes!";
   }
 
   // Avoid showing the same meal twice in a row
-  if (fresh.length > 1 && tonightPick) {
-    fresh = fresh.filter(m => m.id !== tonightPick);
+  if (options.length > 1 && tonightPick) {
+    options = options.filter(m => m.id !== tonightPick);
   }
 
-  tonightPick = randomItem(fresh).id;
+  tonightPick = randomItem(options).id;
   renderSuggestion(note);
 }
 
-function addPick(id) {
-  if (!id || picks.includes(id)) return;
-  picks.push(id);
-  save("picks", picks);
-  if (tonightPick === id) tonightPick = null;
+function acceptSuggestion() {
+  const meal = findMeal(tonightPick);
+  if (!meal) return;
+  rememberEaten(meal);
+  addToShopping([meal]);
+  tonightPick = null;
+  renderSuggestion(`${meal.name} was added to the shopping list. Pick another or add more from the list!`);
+}
+
+function skipSuggestion() {
+  tonightPick = null;
   renderSuggestion();
-  renderPicks();
-}
-
-function removePick(id) {
-  picks = picks.filter(p => p !== id);
-  save("picks", picks);
-  renderPicks();
-}
-
-function picksToShopping() {
-  const chosen = picks.map(findMeal).filter(Boolean);
-  if (chosen.length === 0) return;
-
-  const now = new Date().toISOString();
-  chosen.forEach(meal => history.push({ mealId: meal.id, date: now }));
-  save("history", history);
-
-  addToShopping(chosen);
-  picks = [];
-  save("picks", picks);
-  renderPicks(`Added the ingredients from ${chosen.length} meal${chosen.length === 1 ? "" : "s"} to the shopping list!`);
 }
 
 function renderSuggestion(message) {
@@ -504,7 +483,7 @@ function renderSuggestion(message) {
   const meal = findMeal(tonightPick);
 
   if (!meal) {
-    box.innerHTML = message ? `<p class="empty">${escapeHtml(message)}</p>` : "";
+    box.innerHTML = message ? `<p class="notice">${escapeHtml(message)}</p>` : "";
     return;
   }
 
@@ -518,50 +497,15 @@ function renderSuggestion(message) {
       </ul>
       ${message ? `<p class="notice">${escapeHtml(message)}</p>` : ""}
       <div class="buttons">
-        <button class="secondary" onclick="suggestMeal()">🔄 Something else</button>
-        <button onclick="addPick('${meal.id}')">➕ Add to my picks</button>
+        <button class="secondary" onclick="skipSuggestion()">✕ No thanks</button>
+        <button class="secondary" onclick="suggestMeal()">🔄 Another</button>
+        <button onclick="acceptSuggestion()">🛒 Take it</button>
       </div>
     </div>
   `;
 }
 
-// Dropdown for choosing a meal yourself
-function renderChooser() {
-  const select = document.getElementById("choose-meal");
-  const available = meals.filter(m => !picks.includes(m.id));
-  select.innerHTML = '<option value="">…or choose a meal yourself</option>' +
-    available.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("");
-  select.classList.toggle("hidden", available.length === 0);
-}
-
-function renderPicks(message) {
-  const list = document.getElementById("picked-list");
-  const button = document.getElementById("picks-to-shopping");
-  renderChooser();
-
-  const chosen = picks.map(findMeal).filter(Boolean);
-  if (chosen.length === 0) {
-    const text = message || "No meals picked yet. Get a suggestion or choose one above.";
-    list.innerHTML = `<p class="${message ? "notice" : "empty"}">${escapeHtml(text)}</p>`;
-    button.classList.add("hidden");
-    return;
-  }
-
-  list.innerHTML = chosen.map(meal => `
-    <div class="card pick-row">
-      ${photoHtml(meal.photo, "thumb")}
-      <span class="day-meal">${escapeHtml(meal.name)}</span>
-      <button class="small secondary" onclick="removePick('${meal.id}')" title="Remove">✕</button>
-    </div>
-  `).join("");
-
-  button.textContent = `🛒 Add ingredients from ${chosen.length} meal${chosen.length === 1 ? "" : "s"} to shopping list`;
-  button.classList.remove("hidden");
-}
-
 document.getElementById("pick-tonight").addEventListener("click", suggestMeal);
-document.getElementById("choose-meal").addEventListener("change", event => addPick(event.target.value));
-document.getElementById("picks-to-shopping").addEventListener("click", picksToShopping);
 
 // ---------- Week ----------
 
@@ -672,6 +616,7 @@ function addToShopping(mealList) {
 function addMealToShopping(id, button) {
   const meal = findMeal(id);
   if (!meal) return;
+  rememberEaten(meal);
   addToShopping([meal]);
   button.textContent = "✓ Added";
   setTimeout(() => { button.textContent = "🛒 Add to shopping list"; }, 1500);
@@ -736,7 +681,6 @@ document.getElementById("clear-shopping").addEventListener("click", () => {
 function renderAll() {
   renderMeals();
   renderSuggestion();
-  renderPicks();
   renderWeek();
   renderShopping();
 }

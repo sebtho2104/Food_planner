@@ -336,3 +336,8 @@ input, select {
 @media (max-width: 420px) {
   .shop-form { grid-template-columns: 1fr 64px 70px auto; }
 }
+
+/* Meals tab: two big buttons side by side */
+.top-buttons { display: flex; gap: 8px; }
+.top-buttons .big-btn { flex: 1; }
+.pick .buttons { flex-wrap: wrap; }

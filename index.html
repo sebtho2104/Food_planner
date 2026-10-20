@@ -13,24 +13,12 @@
   </header>
 
   <nav class="tabs">
-    <button class="tab active" data-tab="tonight">What to eat?</button>
+    <button class="tab active" data-tab="library">Meals</button>
     <button class="tab" data-tab="week">Week</button>
-    <button class="tab" data-tab="library">Meals</button>
     <button class="tab" data-tab="shopping">Shopping</button>
   </nav>
 
   <main>
-    <!-- Tonight -->
-    <section id="tonight" class="panel active">
-      <button id="pick-tonight" class="big-btn">🎲 Suggest a meal</button>
-      <div id="tonight-result"></div>
-      <select id="choose-meal" class="chooser"></select>
-
-      <h3 class="section-title">Your picks</h3>
-      <div id="picked-list"></div>
-      <button id="picks-to-shopping" class="big-btn hidden">🛒 Add ingredients to shopping list</button>
-    </section>
-
     <!-- Week -->
     <section id="week" class="panel">
       <div class="row">
@@ -41,8 +29,12 @@
     </section>
 
     <!-- Meal library -->
-    <section id="library" class="panel">
-      <button id="add-meal" class="big-btn">➕ Add meal</button>
+    <section id="library" class="panel active">
+      <div class="top-buttons">
+        <button id="add-meal" class="big-btn">➕ Add meal</button>
+        <button id="pick-tonight" class="big-btn secondary">🎲 Pick one for me</button>
+      </div>
+      <div id="tonight-result"></div>
       <input id="meal-search" class="search" type="search" placeholder="🔍 Search meals or ingredients…">
       <div id="meal-list"></div>
     </section>
