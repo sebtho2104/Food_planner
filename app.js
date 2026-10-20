@@ -20,7 +20,7 @@ function save(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.warn("Could not save", key);
+    alert("Couldn't save. The browser storage is full. Try fewer or smaller uploaded photos.");
   }
 }
 
@@ -31,6 +31,11 @@ let shopping = load("shopping", []);   // [{ name, amount, unit, done }]
 
 let tonightPick = null;  // meal id currently shown on the Tonight tab
 let editingId = null;    // meal id being edited, or null when adding
+let dialogPhoto = null;  // photo (web link or uploaded image) chosen in the popup
+let photoRemoved = false; // true if the user removed the photo on purpose
+let photoResults = [];   // photos found online for the current meal name
+let photoSearchName = "";
+let photoIndex = 0;
 
 // ---------- Helpers ----------
 
@@ -81,6 +86,14 @@ function round(n) {
   return Math.round(n * 100) / 100;
 }
 
+// Photo box for a meal, with a plate emoji when there is no photo
+function photoHtml(photo, extraClass) {
+  const cls = "photo-box " + (extraClass || "");
+  if (!photo) return `<div class="${cls}">🍽️</div>`;
+  const src = escapeHtml(photo).replace(/"/g, "&quot;");
+  return `<div class="${cls}"><img src="${src}" alt="" loading="lazy" onerror="this.parentElement.textContent='🍽️'"></div>`;
+}
+
 function formatIngredient(ing) {
   return ing.amount + " " + ing.unit + " " + ing.name;
 }
@@ -108,6 +121,7 @@ function renderMeals() {
 
   list.innerHTML = meals.map(meal => `
     <div class="card">
+      ${photoHtml(meal.photo)}
       <div class="card-header">
         <h3>${escapeHtml(meal.name)}</h3>
         <div class="card-actions">
@@ -171,6 +185,13 @@ function openMealDialog(id) {
   errorBox.textContent = "";
   rowsBox.innerHTML = "";
 
+  dialogPhoto = meal ? meal.photo || null : null;
+  photoRemoved = false;
+  photoResults = [];
+  photoSearchName = "";
+  setPhotoStatus("");
+  showPhoto();
+
   if (meal) {
     meal.ingredients.forEach(addIngredientRow);
   } else {
@@ -180,6 +201,127 @@ function openMealDialog(id) {
 
   dialog.showModal();
 }
+
+// ---------- Photos ----------
+
+function showPhoto() {
+  const box = document.getElementById("photo-preview");
+  box.innerHTML = dialogPhoto ? `<img src="${dialogPhoto.replace(/"/g, "&quot;")}" alt="">` : "🍽️";
+  document.getElementById("remove-photo").classList.toggle("hidden", !dialogPhoto);
+}
+
+function setPhotoStatus(text) {
+  document.getElementById("photo-status").textContent = text;
+}
+
+// Search TheMealDB (free recipe database with photos, public test key "1")
+async function searchMealDb(query) {
+  const url = "https://www.themealdb.com/api/json/v1/1/search.php?s=" + encodeURIComponent(query);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Search failed");
+  const data = await response.json();
+  return data.meals || [];
+}
+
+// Try the full name first, then single words ("Mammas tacos" -> "tacos")
+async function findPhotos(name) {
+  const words = name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+  words.sort((a, b) => b.length - a.length);
+  const queries = [name.toLowerCase(), ...words].filter((q, i, all) => all.indexOf(q) === i);
+
+  for (const query of queries) {
+    const found = await searchMealDb(query);
+    if (found.length === 0) continue;
+
+    // Best match first: exact name, then names starting with the query, then shortest name
+    const rank = m => {
+      const n = m.strMeal.toLowerCase();
+      const level = n === query ? 0 : n.startsWith(query) ? 1 : 2;
+      return level * 1000 + n.length;
+    };
+    found.sort((a, b) => rank(a) - rank(b));
+    return found.map(m => ({ name: m.strMeal, url: m.strMealThumb }));
+  }
+  return [];
+}
+
+async function findPhotoClick() {
+  const name = document.getElementById("meal-name").value.trim();
+  if (!name) {
+    setPhotoStatus("Write the meal name first.");
+    return;
+  }
+
+  if (name !== photoSearchName) {
+    setPhotoStatus("Searching…");
+    try {
+      photoResults = await findPhotos(name);
+    } catch (e) {
+      setPhotoStatus("Couldn't reach the photo search. Check your internet connection.");
+      return;
+    }
+    photoSearchName = name;
+    photoIndex = 0;
+  } else if (photoResults.length > 0) {
+    // Pressing again shows the next photo
+    photoIndex = (photoIndex + 1) % photoResults.length;
+  }
+
+  if (photoResults.length === 0) {
+    setPhotoStatus(`No photo found for "${name}". Try another name or upload your own.`);
+    return;
+  }
+
+  const pick = photoResults[photoIndex];
+  dialogPhoto = pick.url;
+  photoRemoved = false;
+  showPhoto();
+  setPhotoStatus(`Photo: ${pick.name} (${photoIndex + 1} of ${photoResults.length}). Press again for another.`);
+}
+
+// Shrink an uploaded photo so it doesn't fill up the browser storage
+function resizeImage(file, maxSize, done) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      done(canvas.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = () => setPhotoStatus("Couldn't read that image.");
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.getElementById("find-photo").addEventListener("click", findPhotoClick);
+
+document.getElementById("photo-upload").addEventListener("change", event => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    setPhotoStatus("That file isn't an image.");
+    return;
+  }
+  resizeImage(file, 600, dataUrl => {
+    dialogPhoto = dataUrl;
+    photoRemoved = false;
+    showPhoto();
+    setPhotoStatus("Using your own photo.");
+  });
+});
+
+document.getElementById("remove-photo").addEventListener("click", () => {
+  dialogPhoto = null;
+  photoRemoved = true;
+  showPhoto();
+  setPhotoStatus("");
+});
 
 function readForm() {
   const name = document.getElementById("meal-name").value.trim();
@@ -212,7 +354,7 @@ document.getElementById("add-meal").addEventListener("click", () => openMealDial
 document.getElementById("add-ingredient").addEventListener("click", () => addIngredientRow());
 document.getElementById("cancel-meal").addEventListener("click", () => dialog.close());
 
-document.getElementById("meal-form").addEventListener("submit", event => {
+document.getElementById("meal-form").addEventListener("submit", async event => {
   event.preventDefault();
   const result = readForm();
 
@@ -221,12 +363,27 @@ document.getElementById("meal-form").addEventListener("submit", event => {
     return;
   }
 
+  // No photo chosen? Try to find one automatically
+  if (!dialogPhoto && !photoRemoved) {
+    const saveBtn = document.getElementById("save-meal");
+    saveBtn.disabled = true;
+    setPhotoStatus("Looking for a photo…");
+    try {
+      const found = await findPhotos(result.name);
+      if (found.length > 0) dialogPhoto = found[0].url;
+    } catch (e) {
+      // No internet: just save without a photo
+    }
+    saveBtn.disabled = false;
+  }
+
   if (editingId) {
     const meal = findMeal(editingId);
     meal.name = result.name;
     meal.ingredients = result.ingredients;
+    meal.photo = dialogPhoto;
   } else {
-    meals.push({ id: newId(), name: result.name, ingredients: result.ingredients });
+    meals.push({ id: newId(), name: result.name, ingredients: result.ingredients, photo: dialogPhoto });
   }
 
   save("meals", meals);
@@ -289,6 +446,7 @@ function renderTonight(message, accepted) {
   box.innerHTML = `
     <div class="card pick">
       <div>Tonight's dinner is…</div>
+      ${photoHtml(meal.photo)}
       <div class="meal-title">${escapeHtml(meal.name)}</div>
       <ul class="ingredients" style="text-align:left; display:inline-block;">
         ${meal.ingredients.map(i => `<li>${escapeHtml(formatIngredient(i))}</li>`).join("")}
@@ -366,6 +524,7 @@ function renderWeek(message) {
     return `
       <div class="card day-row">
         <span class="day-name">${day}</span>
+        ${meal ? photoHtml(meal.photo, "thumb") : ""}
         <span class="day-meal">${meal ? escapeHtml(meal.name) : "<em>—</em>"}</span>
         <button class="small secondary" onclick="rerollDay(${i})" title="Pick another">🔄</button>
       </div>`;

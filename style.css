@@ -232,3 +232,49 @@ input, select {
   .ingredient-row { grid-template-columns: 1fr 80px 70px 32px; }
   .day-name { width: 70px; }
 }
+
+/* Photos */
+.photo-box {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  background: #f3ece5 center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  overflow: hidden;
+}
+
+.photo-box img { width: 100%; height: 100%; object-fit: cover; }
+
+.photo-picker { display: flex; flex-direction: column; gap: 8px; }
+.photo-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.file-btn {
+  display: inline-block;
+  font-weight: normal;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+.file-btn:hover { background: #f3ece5; }
+
+.photo-status { color: var(--muted); font-size: 0.85rem; min-height: 1.2em; margin: 4px 0 0; }
+
+.card .photo-box { margin-bottom: 10px; }
+.pick .photo-box { max-width: 420px; margin: 0 auto 8px; }
+
+.thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  aspect-ratio: auto;
+}

@@ -56,6 +56,19 @@
       <label for="meal-name">Meal name</label>
       <input id="meal-name" type="text" placeholder="e.g. Taco" maxlength="60">
 
+      <h3>Photo</h3>
+      <div class="photo-picker">
+        <div id="photo-preview" class="photo-box">🍽️</div>
+        <div class="photo-buttons">
+          <button type="button" id="find-photo" class="secondary small">🔍 Find photo online</button>
+          <label class="file-btn">📷 Upload my own
+            <input type="file" id="photo-upload" accept="image/*" hidden>
+          </label>
+          <button type="button" id="remove-photo" class="secondary small hidden">Remove photo</button>
+        </div>
+      </div>
+      <p id="photo-status" class="photo-status"></p>
+
       <h3>Ingredients</h3>
       <div id="ingredient-rows"></div>
       <button type="button" id="add-ingredient" class="secondary">+ Add ingredient</button>
