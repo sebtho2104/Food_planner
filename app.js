@@ -29,6 +29,80 @@ let history = load("history", []);     // [{ mealId, date }]
 let week = load("week", []);           // [mealId or null] x 7
 let shopping = load("shopping", []);   // [{ name, amount, unit, done }]
 
+// ---------- Starter meals ----------
+// Added once, so the app isn't empty the first time someone opens it.
+// Meals with the same name as one you already have are skipped.
+
+const PHOTO = "https://www.themealdb.com/images/media/meals/";
+
+const STARTER_MEALS = [
+  { name: "Taco", photo: PHOTO + "ypxvwv1505333929.jpg", ingredients: [
+    { name: "Minced beef", amount: 400, unit: "g" },
+    { name: "Tortillas", amount: 8, unit: "pcs" },
+    { name: "Taco spice", amount: 1, unit: "pcs" },
+    { name: "Grated cheese", amount: 150, unit: "g" },
+    { name: "Sour cream", amount: 3, unit: "dl" },
+    { name: "Tomatoes", amount: 2, unit: "pcs" },
+    { name: "Iceberg lettuce", amount: 1, unit: "pcs" }] },
+  { name: "Spaghetti Bolognese", photo: PHOTO + "sutysw1468247559.jpg", ingredients: [
+    { name: "Spaghetti", amount: 400, unit: "g" },
+    { name: "Minced beef", amount: 400, unit: "g" },
+    { name: "Chopped tomatoes", amount: 400, unit: "g" },
+    { name: "Onion", amount: 1, unit: "pcs" },
+    { name: "Garlic", amount: 2, unit: "pcs" },
+    { name: "Parmesan", amount: 50, unit: "g" }] },
+  { name: "Lasagne", photo: PHOTO + "wtsvxx1511296896.jpg", ingredients: [
+    { name: "Lasagne sheets", amount: 250, unit: "g" },
+    { name: "Minced beef", amount: 500, unit: "g" },
+    { name: "Chopped tomatoes", amount: 800, unit: "g" },
+    { name: "Milk", amount: 5, unit: "dl" },
+    { name: "Butter", amount: 50, unit: "g" },
+    { name: "Flour", amount: 3, unit: "tbsp" },
+    { name: "Grated cheese", amount: 200, unit: "g" }] },
+  { name: "Fiskesuppe", photo: PHOTO + "raqjbj1762773035.jpg", ingredients: [
+    { name: "Salmon", amount: 300, unit: "g" },
+    { name: "Cod", amount: 300, unit: "g" },
+    { name: "Carrots", amount: 2, unit: "pcs" },
+    { name: "Leek", amount: 1, unit: "pcs" },
+    { name: "Fish stock", amount: 1, unit: "l" },
+    { name: "Cream", amount: 3, unit: "dl" }] },
+  { name: "Chicken Curry", photo: PHOTO + "yxsurp1511304301.jpg", ingredients: [
+    { name: "Chicken breast", amount: 500, unit: "g" },
+    { name: "Coconut milk", amount: 400, unit: "ml" },
+    { name: "Curry paste", amount: 2, unit: "tbsp" },
+    { name: "Onion", amount: 1, unit: "pcs" },
+    { name: "Rice", amount: 300, unit: "g" }] },
+  { name: "Teriyaki Salmon", photo: PHOTO + "xxyupu1468262513.jpg", ingredients: [
+    { name: "Salmon", amount: 500, unit: "g" },
+    { name: "Teriyaki sauce", amount: 1, unit: "dl" },
+    { name: "Broccoli", amount: 1, unit: "pcs" },
+    { name: "Rice", amount: 300, unit: "g" }] },
+  { name: "Pizza Margherita", photo: PHOTO + "x0lk931587671540.jpg", ingredients: [
+    { name: "Flour", amount: 500, unit: "g" },
+    { name: "Yeast", amount: 12, unit: "g" },
+    { name: "Tomato sauce", amount: 2, unit: "dl" },
+    { name: "Mozzarella", amount: 250, unit: "g" },
+    { name: "Basil", amount: 1, unit: "pcs" }] },
+  { name: "Pancakes", photo: PHOTO + "rwuyqx1511383174.jpg", ingredients: [
+    { name: "Flour", amount: 3, unit: "dl" },
+    { name: "Milk", amount: 6, unit: "dl" },
+    { name: "Eggs", amount: 3, unit: "pcs" },
+    { name: "Butter", amount: 30, unit: "g" },
+    { name: "Jam", amount: 1, unit: "pcs" }] },
+];
+
+function addStarterMeals() {
+  if (load("starterMealsAdded", false)) return;
+
+  STARTER_MEALS.forEach(starter => {
+    const exists = meals.some(m => m.name.toLowerCase() === starter.name.toLowerCase());
+    if (!exists) meals.push({ id: newId(), ...starter });
+  });
+
+  save("meals", meals);
+  save("starterMealsAdded", true);
+}
+
 let tonightPick = null;  // meal id currently shown on the Tonight tab
 let editingId = null;    // meal id being edited, or null when adding
 let dialogPhoto = null;  // photo (web link or uploaded image) chosen in the popup
@@ -680,6 +754,8 @@ document.getElementById("clear-shopping").addEventListener("click", () => {
 });
 
 // ---------- Start ----------
+
+addStarterMeals();
 
 function renderAll() {
   renderMeals();
