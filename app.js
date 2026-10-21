@@ -29,13 +29,13 @@ let history = load("history", []);     // [{ mealId, date }]
 let week = load("week", []);           // [mealId or null] x 7
 let shopping = load("shopping", []);   // [{ name, amount, unit, done }]
 
-// ---------- Starter meals ----------
-// Added once, so the app isn't empty the first time someone opens it.
-// Meals with the same name as one you already have are skipped.
+// ---------- Ready-made meals (the Find tab) ----------
+// Every recipe is for 4 people. Amounts are scaled when you pick another number.
 
 const PHOTO = "https://www.themealdb.com/images/media/meals/";
+const DEFAULT_SERVINGS = 4;
 
-const STARTER_MEALS = [
+const RECIPES = [
   { name: "Taco", photo: PHOTO + "ypxvwv1505333929.jpg", ingredients: [
     { name: "Minced beef", amount: 400, unit: "g" },
     { name: "Tortillas", amount: 8, unit: "pcs" },
@@ -89,18 +89,54 @@ const STARTER_MEALS = [
     { name: "Eggs", amount: 3, unit: "pcs" },
     { name: "Butter", amount: 30, unit: "g" },
     { name: "Jam", amount: 1, unit: "pcs" }] },
+  { name: "Spaghetti Carbonara", photo: PHOTO + "llcbn01574260722.jpg", ingredients: [
+    { name: "Spaghetti", amount: 400, unit: "g" },
+    { name: "Bacon", amount: 200, unit: "g" },
+    { name: "Eggs", amount: 4, unit: "pcs" },
+    { name: "Parmesan", amount: 80, unit: "g" },
+    { name: "Black pepper", amount: 1, unit: "tsp" }] },
+  { name: "Beef Stroganoff", photo: PHOTO + "svprys1511176755.jpg", ingredients: [
+    { name: "Beef", amount: 500, unit: "g" },
+    { name: "Mushrooms", amount: 250, unit: "g" },
+    { name: "Onion", amount: 1, unit: "pcs" },
+    { name: "Sour cream", amount: 2, unit: "dl" },
+    { name: "Rice", amount: 300, unit: "g" }] },
+  { name: "Fish Pie", photo: PHOTO + "ysxwuq1487323065.jpg", ingredients: [
+    { name: "Cod", amount: 400, unit: "g" },
+    { name: "Shrimps", amount: 200, unit: "g" },
+    { name: "Potatoes", amount: 1, unit: "kg" },
+    { name: "Milk", amount: 5, unit: "dl" },
+    { name: "Butter", amount: 50, unit: "g" },
+    { name: "Grated cheese", amount: 100, unit: "g" }] },
+  { name: "Pad Thai", photo: PHOTO + "rg9ze01763479093.jpg", ingredients: [
+    { name: "Rice noodles", amount: 300, unit: "g" },
+    { name: "Chicken breast", amount: 400, unit: "g" },
+    { name: "Eggs", amount: 2, unit: "pcs" },
+    { name: "Bean sprouts", amount: 200, unit: "g" },
+    { name: "Peanuts", amount: 50, unit: "g" },
+    { name: "Pad thai sauce", amount: 1, unit: "dl" }] },
+  { name: "Shakshuka", photo: PHOTO + "g373701551450225.jpg", ingredients: [
+    { name: "Eggs", amount: 8, unit: "pcs" },
+    { name: "Chopped tomatoes", amount: 800, unit: "g" },
+    { name: "Bell pepper", amount: 2, unit: "pcs" },
+    { name: "Onion", amount: 1, unit: "pcs" },
+    { name: "Feta", amount: 150, unit: "g" },
+    { name: "Bread", amount: 1, unit: "pcs" }] },
 ];
 
-function addStarterMeals() {
-  if (load("starterMealsAdded", false)) return;
+// An earlier version added the first 8 recipes to "Your meals" automatically.
+// Remove those once (only if still unchanged), so the list starts empty.
+function removeOldStarterMeals() {
+  if (!load("starterMealsAdded", false) || load("starterMealsRemoved", false)) return;
 
-  STARTER_MEALS.forEach(starter => {
-    const exists = meals.some(m => m.name.toLowerCase() === starter.name.toLowerCase());
-    if (!exists) meals.push({ id: newId(), ...starter });
-  });
+  const isStarter = meal => RECIPES.some(r => r.name === meal.name && r.photo === meal.photo);
+  meals = meals.filter(meal => !isStarter(meal));
+  week = week.map(id => (meals.some(m => m.id === id) ? id : null));
+  if (week.every(id => id === null)) week = [];
 
   save("meals", meals);
-  save("starterMealsAdded", true);
+  save("week", week);
+  save("starterMealsRemoved", true);
 }
 
 let tonightPick = null;  // meal id currently shown on the Tonight tab
@@ -148,13 +184,22 @@ function toBase(amount, unit) {
   return { amount, unit };
 }
 
-// Turn base units back into something readable (1500 g -> 1.5 kg)
+// Turn base units back into something readable for the shopping list (1500 g -> 1.5 kg)
 function prettyAmount(amount, unit) {
   if (unit === "g" && amount >= 1000) return round(amount / 1000) + " kg";
+  if (unit === "g") return Math.round(amount) + " g";
   if (unit === "ml" && amount >= 1000) return round(amount / 1000) + " l";
   if (unit === "ml" && amount >= 100) return round(amount / 100) + " dl";
-  if (unit === "pcs") return round(amount) + " ×";
+  if (unit === "ml") return Math.round(amount) + " ml";
+  if (unit === "pcs") return Math.ceil(amount - 0.001) + " ×"; // you can't buy 2.5 tomatoes, so round up
   return round(amount) + " " + unit;
+}
+
+// Nicer numbers in recipes after scaling: whole grams/ml, half pieces, 1 decimal otherwise
+function niceAmount(amount, unit) {
+  if (unit === "g" || unit === "ml") return Math.round(amount);
+  if (unit === "pcs") return Math.max(0.5, Math.round(amount * 2) / 2);
+  return Math.round(amount * 10) / 10;
 }
 
 function round(n) {
@@ -170,20 +215,80 @@ function photoHtml(photo, extraClass) {
 }
 
 function formatIngredient(ing) {
-  return ing.amount + " " + ing.unit + " " + ing.name;
+  return niceAmount(ing.amount, ing.unit) + " " + ing.unit + " " + ing.name;
+}
+
+// ---------- Servings and scaling ----------
+
+// Meals saved before servings existed count as 4 people
+function servingsOf(meal) {
+  return meal.servings || DEFAULT_SERVINGS;
+}
+
+// Ingredients scaled from the meal's own servings to "people"
+// (a 4-person recipe with 400 g for 6 people gives 600 g)
+function scaleIngredients(meal, people) {
+  const factor = people / servingsOf(meal);
+  return meal.ingredients.map(ing => ({ ...ing, amount: round(ing.amount * factor) }));
+}
+
+function peopleText(n) {
+  return n + (n === 1 ? " person" : " people");
+}
+
+// How many people each card is set to right now, e.g. { "my-abc": 6, "find-2": 2, "pick": 4 }
+let people = {};
+
+// Which meal a stepper key belongs to
+function mealForKey(key) {
+  if (key === "pick") return findMeal(tonightPick);
+  if (key.startsWith("my-")) return findMeal(key.slice(3));
+  if (key.startsWith("find-")) return RECIPES[Number(key.slice(5))];
+  return null;
+}
+
+function peopleFor(key) {
+  const meal = mealForKey(key);
+  return people[key] || (meal ? servingsOf(meal) : DEFAULT_SERVINGS);
+}
+
+function ingredientListHtml(meal, n) {
+  return scaleIngredients(meal, n).map(i => `<li>${escapeHtml(formatIngredient(i))}</li>`).join("");
+}
+
+// "👥 − 4 people +" control. Changing it updates the ingredient list with the same key.
+function servingsControl(key) {
+  return `
+    <div class="servings">
+      <span class="servings-icon">👥</span>
+      <button type="button" class="step" onclick="changePeople('${key}', -1)" aria-label="Fewer people">−</button>
+      <span class="servings-count" id="count-${key}">${peopleText(peopleFor(key))}</span>
+      <button type="button" class="step" onclick="changePeople('${key}', 1)" aria-label="More people">+</button>
+    </div>`;
+}
+
+function changePeople(key, delta) {
+  const meal = mealForKey(key);
+  if (!meal) return;
+  const n = Math.min(20, Math.max(1, peopleFor(key) + delta));
+  people[key] = n;
+
+  // Update just this card, so open cards don't close or flicker
+  document.getElementById("count-" + key).textContent = peopleText(n);
+  document.getElementById("ing-" + key).innerHTML = ingredientListHtml(meal, n);
 }
 
 // ---------- Tabs ----------
 
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === name));
+  // The "Add meal" button only belongs on the Meals tab
+  document.getElementById("add-meal").classList.toggle("hidden", name !== "library");
+}
+
 document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-    tab.classList.add("active");
-    document.getElementById(tab.dataset.tab).classList.add("active");
-    // The "Add meal" button only belongs on the Meals tab
-    document.getElementById("add-meal").classList.toggle("hidden", tab.dataset.tab !== "library");
-  });
+  tab.addEventListener("click", () => showTab(tab.dataset.tab));
 });
 
 // ---------- Meal library ----------
@@ -195,7 +300,12 @@ function renderMeals() {
   document.getElementById("meal-total").textContent = meals.length;
 
   if (meals.length === 0) {
-    list.innerHTML = '<p class="empty">No meals yet. Press <b>+ Add meal</b> to add your first one!</p>';
+    list.innerHTML = `
+      <div class="empty">
+        <p>No meals yet.</p>
+        <p>Find ready-made meals, or press <b>+ Add meal</b> to make your own.</p>
+        <button class="small" onclick="showTab('find')">🔍 Find meals</button>
+      </div>`;
     return;
   }
 
@@ -217,15 +327,16 @@ function renderMeals() {
         ${photoHtml(meal.photo, "thumb")}
         <div class="meal-info">
           <div class="meal-name">${escapeHtml(meal.name)}</div>
-          <div class="meal-count">${meal.ingredients.length} ingredient${meal.ingredients.length === 1 ? "" : "s"}</div>
+          <div class="meal-count">Serves ${servingsOf(meal)} · ${meal.ingredients.length} ingredient${meal.ingredients.length === 1 ? "" : "s"}</div>
         </div>
         <span class="chevron">▾</span>
       </div>
       <div class="meal-details-wrap">
         <div class="meal-details">
           ${photoHtml(meal.photo, "large")}
-          <ul class="ingredients">
-            ${meal.ingredients.map(i => `<li>${escapeHtml(formatIngredient(i))}</li>`).join("")}
+          ${servingsControl("my-" + meal.id)}
+          <ul class="ingredients" id="ing-my-${meal.id}">
+            ${ingredientListHtml(meal, peopleFor("my-" + meal.id))}
           </ul>
           <div class="card-actions">
             <button class="small" onclick="addMealToShopping('${meal.id}', this)">🛒 Add to shopping list</button>
@@ -294,6 +405,7 @@ function openMealDialog(id) {
 
   document.getElementById("dialog-title").textContent = meal ? "Edit meal" : "Add meal";
   document.getElementById("meal-name").value = meal ? meal.name : "";
+  document.getElementById("meal-servings").value = meal ? servingsOf(meal) : DEFAULT_SERVINGS;
   errorBox.textContent = "";
   rowsBox.innerHTML = "";
 
@@ -439,6 +551,11 @@ function readForm() {
   const name = document.getElementById("meal-name").value.trim();
   if (!name) return { error: "Give the meal a name." };
 
+  const servings = Number(document.getElementById("meal-servings").value);
+  if (!Number.isInteger(servings) || servings < 1 || servings > 20) {
+    return { error: "Serves must be a whole number from 1 to 20." };
+  }
+
   const ingredients = [];
   for (const row of rowsBox.querySelectorAll(".ingredient-row")) {
     const ingName = row.querySelector(".ing-name").value.trim();
@@ -459,7 +576,7 @@ function readForm() {
   const duplicate = meals.find(m => m.name.toLowerCase() === name.toLowerCase() && m.id !== editingId);
   if (duplicate) return { error: `You already have a meal called "${duplicate.name}".` };
 
-  return { name, ingredients };
+  return { name, servings, ingredients };
 }
 
 document.getElementById("add-meal").addEventListener("click", () => openMealDialog());
@@ -492,10 +609,18 @@ document.getElementById("meal-form").addEventListener("submit", async event => {
   if (editingId) {
     const meal = findMeal(editingId);
     meal.name = result.name;
+    meal.servings = result.servings;
     meal.ingredients = result.ingredients;
     meal.photo = dialogPhoto;
+    delete people["my-" + meal.id]; // show the new default number of people
   } else {
-    meals.push({ id: newId(), name: result.name, ingredients: result.ingredients, photo: dialogPhoto });
+    meals.push({
+      id: newId(),
+      name: result.name,
+      servings: result.servings,
+      ingredients: result.ingredients,
+      photo: dialogPhoto,
+    });
   }
 
   save("meals", meals);
@@ -519,7 +644,7 @@ function rememberEaten(meal) {
 function suggestMeal() {
   if (meals.length === 0) {
     tonightPick = null;
-    renderSuggestion("Add some meals first.");
+    renderSuggestion("Add some meals first. You can find ready-made ones in the Find tab.");
     return;
   }
 
@@ -538,16 +663,18 @@ function suggestMeal() {
   }
 
   tonightPick = randomItem(options).id;
+  delete people.pick; // start each suggestion at the meal's own servings
   renderSuggestion(note);
 }
 
 function acceptSuggestion() {
   const meal = findMeal(tonightPick);
   if (!meal) return;
+  const n = peopleFor("pick");
   rememberEaten(meal);
-  addToShopping([meal]);
+  addToShopping([{ meal, people: n }]);
   tonightPick = null;
-  renderSuggestion(`${meal.name} was added to the shopping list. Pick another or add more from the list!`);
+  renderSuggestion(`${meal.name} for ${peopleText(n)} was added to the shopping list. Pick another or add more from the list!`);
 }
 
 function skipSuggestion() {
@@ -569,8 +696,9 @@ function renderSuggestion(message) {
       <div class="pick-label">How about…</div>
       ${photoHtml(meal.photo)}
       <div class="meal-title">${escapeHtml(meal.name)}</div>
-      <ul class="ingredients" style="text-align:left; display:inline-block;">
-        ${meal.ingredients.map(i => `<li>${escapeHtml(formatIngredient(i))}</li>`).join("")}
+      ${servingsControl("pick")}
+      <ul class="ingredients" id="ing-pick" style="text-align:left; display:inline-block;">
+        ${ingredientListHtml(meal, peopleFor("pick"))}
       </ul>
       ${message ? `<p class="notice">${escapeHtml(message)}</p>` : ""}
       <div class="buttons">
@@ -590,7 +718,7 @@ function pickWeek() {
   if (meals.length === 0) {
     week = [];
     save("week", week);
-    renderWeek("Add some meals first in the Meals tab.");
+    renderWeek("Add some meals first. You can find ready-made ones in the Find tab.");
     return;
   }
 
@@ -624,10 +752,18 @@ function rerollDay(index) {
   renderWeek();
 }
 
+let weekPeople = load("weekPeople", DEFAULT_SERVINGS); // how many you cook for this week
+
+function changeWeekPeople(delta) {
+  weekPeople = Math.min(20, Math.max(1, weekPeople + delta));
+  save("weekPeople", weekPeople);
+  document.getElementById("week-people-count").textContent = peopleText(weekPeople);
+}
+
 function weekToShopping() {
   const weekMeals = week.map(findMeal).filter(Boolean);
-  addToShopping(weekMeals);
-  renderWeek("Whole week added to the shopping list!");
+  addToShopping(weekMeals.map(meal => ({ meal, people: weekPeople })));
+  renderWeek(`Whole week for ${peopleText(weekPeople)} added to the shopping list!`);
 }
 
 function renderWeek(message) {
@@ -640,7 +776,18 @@ function renderWeek(message) {
     return;
   }
 
-  list.innerHTML = DAYS.map((day, i) => {
+  const peopleBar = `
+    <div class="card week-people">
+      <span>Cooking for</span>
+      <div class="servings">
+        <span class="servings-icon">👥</span>
+        <button type="button" class="step" onclick="changeWeekPeople(-1)" aria-label="Fewer people">−</button>
+        <span class="servings-count" id="week-people-count">${peopleText(weekPeople)}</span>
+        <button type="button" class="step" onclick="changeWeekPeople(1)" aria-label="More people">+</button>
+      </div>
+    </div>`;
+
+  list.innerHTML = peopleBar + DAYS.map((day, i) => {
     const meal = findMeal(week[i]);
     return `
       <div class="card day-row">
@@ -682,22 +829,106 @@ function addShoppingItem(name, amount, unit) {
   }
 }
 
-function addToShopping(mealList) {
-  mealList.forEach(meal => {
-    meal.ingredients.forEach(ing => addShoppingItem(ing.name, ing.amount, ing.unit));
+// entries: [{ meal, people }], amounts are scaled to the number of people
+function addToShopping(entries) {
+  entries.forEach(({ meal, people }) => {
+    scaleIngredients(meal, people).forEach(ing => addShoppingItem(ing.name, ing.amount, ing.unit));
   });
   save("shopping", shopping);
   renderShopping();
+}
+
+function flashButton(button, text) {
+  const original = button.textContent;
+  button.textContent = text;
+  setTimeout(() => { button.textContent = original; }, 1500);
 }
 
 function addMealToShopping(id, button) {
   const meal = findMeal(id);
   if (!meal) return;
   rememberEaten(meal);
-  addToShopping([meal]);
-  button.textContent = "✓ Added";
-  setTimeout(() => { button.textContent = "🛒 Add to shopping list"; }, 1500);
+  addToShopping([{ meal, people: peopleFor("my-" + id) }]);
+  flashButton(button, "✓ Added");
 }
+
+// ---------- Find ready-made meals ----------
+
+function isSaved(recipe) {
+  return meals.some(m => m.name.toLowerCase() === recipe.name.toLowerCase());
+}
+
+function renderFind() {
+  const list = document.getElementById("find-list");
+  const query = document.getElementById("find-search").value.trim().toLowerCase();
+
+  const shown = RECIPES
+    .map((recipe, index) => ({ recipe, key: "find-" + index }))
+    .filter(({ recipe }) =>
+      recipe.name.toLowerCase().includes(query) ||
+      recipe.ingredients.some(i => i.name.toLowerCase().includes(query))
+    );
+
+  if (shown.length === 0) {
+    list.innerHTML = `<p class="empty">No meals match "${escapeHtml(query)}".</p>`;
+    return;
+  }
+
+  list.innerHTML = shown.map(({ recipe, key }) => `
+    <div class="card meal-item ${key === openMealId ? "open" : ""}" data-id="${key}">
+      <div class="meal-summary" onclick="toggleMeal('${key}')">
+        ${photoHtml(recipe.photo, "thumb")}
+        <div class="meal-info">
+          <div class="meal-name">${escapeHtml(recipe.name)}</div>
+          <div class="meal-count">${recipe.ingredients.length} ingredients${isSaved(recipe) ? ' · <span class="saved">✓ In your meals</span>' : ""}</div>
+        </div>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="meal-details-wrap">
+        <div class="meal-details">
+          ${photoHtml(recipe.photo, "large")}
+          ${servingsControl(key)}
+          <ul class="ingredients" id="ing-${key}">
+            ${ingredientListHtml(recipe, peopleFor(key))}
+          </ul>
+          <div class="card-actions">
+            <button class="small secondary" onclick="addRecipeToShopping('${key}', this)">🛒 Add to shopping list</button>
+            ${isSaved(recipe)
+              ? `<button class="small secondary" onclick="showTab('library')">✓ In your meals</button>`
+              : `<button class="small" onclick="saveRecipe('${key}')">➕ Save to my meals</button>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+
+// Saved with the number of people you chose, so it's ready to cook next time too
+function saveRecipe(key) {
+  const recipe = mealForKey(key);
+  if (!recipe || isSaved(recipe)) return;
+  const n = peopleFor(key);
+
+  meals.push({
+    id: newId(),
+    name: recipe.name,
+    photo: recipe.photo,
+    servings: n,
+    ingredients: scaleIngredients(recipe, n),
+  });
+  save("meals", meals);
+  renderMeals();
+  renderFind();
+}
+
+function addRecipeToShopping(key, button) {
+  const recipe = mealForKey(key);
+  if (!recipe) return;
+  addToShopping([{ meal: recipe, people: peopleFor(key) }]);
+  flashButton(button, "✓ Added");
+}
+
+document.getElementById("find-search").addEventListener("input", renderFind);
 
 // Add a single item from the Shopping tab
 document.getElementById("shop-unit").innerHTML = UNITS.map(u => `<option value="${u}">${u}</option>`).join("");
@@ -755,10 +986,11 @@ document.getElementById("clear-shopping").addEventListener("click", () => {
 
 // ---------- Start ----------
 
-addStarterMeals();
+removeOldStarterMeals();
 
 function renderAll() {
   renderMeals();
+  renderFind();
   renderSuggestion();
   renderWeek();
   renderShopping();
